@@ -11,6 +11,7 @@ pub struct Request {
     // TODO: use a small vec to avoid this unconditional allocation
     headers: Vec<(Slice, Slice)>,
     data: BytesMut,
+    body: BytesMut,
 }
 
 type Slice = (usize, usize);
@@ -42,6 +43,10 @@ impl Request {
 
     fn slice(&self, slice: &Slice) -> &[u8] {
         &self.data[slice.0..slice.1]
+    }
+
+    pub fn body(&self) -> &[u8] {
+        &self.body
     }
 }
 
@@ -83,12 +88,17 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
          amt)
     };
 
+    let data = buf.split_to(amt);
+    let len = buf.len();
+    let body = buf.split_to(len);
+
     Ok(Request {
         method: method,
         path: path,
         version: version,
         headers: headers,
-        data: buf.split_to(amt),
+        data: data,
+        body: body,
     }.into())
 }
 
